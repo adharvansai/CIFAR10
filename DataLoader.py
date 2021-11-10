@@ -1,9 +1,14 @@
 import os
 import pickle
 import numpy as np
+from sklearn.model_selection import train_test_split
 
 """This script implements the functions for reading data.
 """
+def loadpickle(path):
+    with open(path, 'rb') as file:
+        data = pickle.load(file,encoding='bytes')
+    return data
 
 def load_data(data_dir):
     """Load the CIFAR-10 dataset.
@@ -25,6 +30,22 @@ def load_data(data_dir):
 
     ### YOUR CODE HERE
 
+    meta_data = loadpickle(data_dir + '/batches.meta')
+    train_data = np.empty((0, 3072))
+    train_labels = []
+    for i in range(5):
+        data_load = loadpickle(data_dir + "/data_batch_" + str(i+1))
+        train_labels = train_labels + data_load[b'labels']
+        train_data = np.vstack((train_data,data_load[b'data']))
+
+    x_train = train_data
+    y_train = np.array(train_labels)
+
+    data_load = loadpickle(data_dir + "/test_batch")
+    x_test = data_load[b'data']
+    y_test = np.array(data_load[b'labels'])
+
+
     ### END CODE HERE
 
     return x_train, y_train, x_test, y_test
@@ -43,7 +64,7 @@ def load_testing_images(data_dir):
     """
 
     ### YOUR CODE HERE
-
+    x_test = []
     ### END CODE HERE
 
     return x_test
@@ -66,7 +87,7 @@ def train_valid_split(x_train, y_train, train_ratio=0.8):
     """
     
     ### YOUR CODE HERE
-
+    x_train_new, x_valid, y_train_new, y_valid = train_test_split(x_train,y_train,train_size=train_ratio)
     ### END CODE HERE
 
     return x_train_new, y_train_new, x_valid, y_valid
