@@ -8,15 +8,15 @@ from DataLoader import load_data, train_valid_split
 from Configure import model_configs, training_configs
 
 mode = 'train'
-data_dir = '/Users/aj/Documents/DeepLearning/CIFAR10/data'
+data_dir = '/content/drive/MyDrive/CIFAR10/CIFAR10/data'
 
 if __name__ == '__main__':
 	model = MyModel(model_configs)
 	if mode == 'train':
 		x_train, y_train, x_test, y_test = load_data(data_dir)
 		x_train, y_train, x_valid, y_valid = train_valid_split(x_train, y_train)
-		model.train(x_train, y_train, training_configs)
-		model.validate(x_valid,y_valid,[5,10])
+		#model.train(x_train, y_train, training_configs,10)
+		model.validate(x_valid,y_valid,[20,25])
 
 
 '''

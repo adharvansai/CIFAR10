@@ -11,6 +11,7 @@ from tqdm import tqdm
 """This script defines the training, validation and testing process.
 """
 
+
 class MyModel(object):
 
     def __init__(self, configs):
@@ -19,14 +20,18 @@ class MyModel(object):
         self.network = MyNetwork(configs).cuda()
 
         self.criterion = nn.CrossEntropyLoss()
-        self.optimizer = torch.optim.SGD(self.network.parameters(), lr=self.configs['learning_rate'], momentum=self.configs['momentum'], weight_decay=5e-4)
+        self.optimizer = torch.optim.SGD(self.network.parameters(), lr=self.configs['learning_rate'],
+                                         momentum=self.configs['momentum'], weight_decay=5e-4)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=10, gamma=0.1)
 
     def model_setup(self):
         pass
 
-    def train(self, x_train, y_train, configs):
+    def train(self, x_train, y_train, configs, chkpt=None):
         self.network.train()
+        if (chkpt != None):
+            checkpointfile = os.path.join(self.configs['save_dir'], 'model-%d.ckpt' % (chkpt))
+            self.load(checkpointfile)
         # Determine how many batches in an epoch
         num_samples = x_train.shape[0]
         num_batches = num_samples // configs['batch_size']
@@ -66,19 +71,21 @@ class MyModel(object):
                 outputs = self.network(x_train_tensor)
                 loss = self.criterion(outputs, y_train_tensor)
 
-
                 ### YOUR CODE HERE
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
 
-                print('Batch {:d}/{:d} Loss {:.6f}'.format(i, num_batches, loss), end='\r', flush=True)
+                print('\rBatch {:d}/{:d} Loss {:.6f}'.format(i, num_batches, loss), end='', flush=True)
 
             duration = time.time() - start_time
             print('Epoch {:d} Loss {:.6f} Duration {:.3f} seconds.'.format(epoch, loss, duration))
 
             if epoch % configs['save_interval'] == 0:
-                self.save(epoch)
+                if (chkpt != None):
+                    self.save(epoch + chkpt)
+                else:
+                    self.save(epoch)
 
     def validate(self, x, y, checkpoint_num_list):
         self.network.eval()
@@ -89,10 +96,10 @@ class MyModel(object):
 
             preds = []
             for i in tqdm(range(x.shape[0])):
-            ### YOUR CODE HERE
+                ### YOUR CODE HERE
                 img_pp = parse_record(x[i], False)
                 img_input = np.expand_dims(img_pp, axis=0)
-                x_test_tensor = torch.FloatTensor(img_input)
+                x_test_tensor = torch.cuda.FloatTensor(img_input)
                 pred = self.network(x_test_tensor)
                 _, pred = torch.max(pred, 1)
                 preds.append(pred)
@@ -118,6 +125,5 @@ class MyModel(object):
         ckpt = torch.load(checkpoint_name, map_location="cpu")
         self.network.load_state_dict(ckpt, strict=True)
         print("Restored model parameters from {}".format(checkpoint_name))
-
 
 ### END CODE HERE
