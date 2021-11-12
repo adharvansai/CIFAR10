@@ -19,7 +19,7 @@ class MyNetwork(nn.Module):
 
         ### YOUR CODE HERE
         # define conv1
-        self.start_layer = nn.Conv2d(3, self.first_num_filters, 3, padding=1, stride=1, bias=False)
+        self.start_layer = nn.Conv2d(3, 16, 3, padding=1, stride=1, bias=False)
         ### YOUR CODE HERE
 
         # We do not include batch normalization or activation functions in V2
@@ -89,17 +89,20 @@ class bottleneck_block(nn.Module):
     def __init__(self, filters, projection_shortcut, strides, first_num_filters) -> None:
         super(bottleneck_block, self).__init__()
 
-        self.first_layer = nn.Conv2d(first_num_filters, filters // 4, 1, padding=0)
+        self.first_layer = nn.Conv2d(filters, filters // 4, 1, padding=0)
         self.second_layer = nn.Conv2d(filters // 4, filters // 4, 3, padding=1)
         self.third_layer = nn.Conv2d(filters // 4, filters, 1, padding=0)
         self.residual_projection = None
         self.bnrelu_first = batch_norm_relu_layer(filters)
         self.bnrelu_rest = batch_norm_relu_layer(filters // 4)
+        self.shortcut = nn.Sequential()
 
         if projection_shortcut is not None:
             self.residual_projection = nn.Conv2d(first_num_filters, filters, 1, stride=strides)
             self.first_layer = nn.Conv2d(first_num_filters, filters // 4, 1, stride=strides)
             self.bnrelu_first = batch_norm_relu_layer(first_num_filters)
+            self.shortcut = nn.Sequential(nn.Conv2d(first_num_filters,filters,1,stride = strides, bias=False),
+                                          batch_norm_relu_layer(filters))
 
         ### YOUR CODE HERE
         # Hint: Different from standard lib implementation, you need pay attention to
@@ -119,11 +122,8 @@ class bottleneck_block(nn.Module):
         out_l2 = self.second_layer(preact_l2)
         preact_l3 = self.bnrelu_rest(out_l2)
         out_l3 = self.third_layer(preact_l3)
-        if (self.residual_projection is not None):
-            res_proj = self.residual_projection(preact_l1)
-        else:
-            res_proj = preact_l1
-        res_out = out_l3 + res_proj
+
+        res_out = out_l3 + self.shortcut(inputs)
         out = F.relu(res_out)
 
         return out
@@ -148,7 +148,7 @@ class stack_layer(nn.Module):
 
     def __init__(self, filters, block_fn, strides, network_size, first_num_filters) -> None:
         super(stack_layer, self).__init__()
-        filters_out = filters * 4 if block_fn is bottleneck_block else filters
+        filters_out = filters * 4
         ### END CODE HERE
         # projection_shortcut = ?
         # Only the first block per stack_layer uses projection_shortcut and strides
