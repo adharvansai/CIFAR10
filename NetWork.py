@@ -153,14 +153,19 @@ class stack_layer(nn.Module):
         # projection_shortcut = ?
         # Only the first block per stack_layer uses projection_shortcut and strides
         blocks = []
+        input_filters = first_num_filters
         for i in range(network_size):
-            if (i == 0):
-                if (filters != first_num_filters):
-                    blocks.append(bottleneck_block(filters_out, 1, strides, filters_out // 2))
+            if (filters_out != input_filters):
+                if(filters_out == 4*first_num_filters):
+                    input_filters = first_num_filters
+                    blocks.append(bottleneck_block(filters_out,'Y',strides, input_filters))
+                    input_filters = filters_out
                 else:
-                    blocks.append(bottleneck_block(filters_out, 1, strides, first_num_filters))
+                    input_filters = filters_out//2
+                    blocks.append(bottleneck_block(filters_out,'Y',strides, input_filters))
+                    input_filters = filters_out
             else:
-                blocks.append(bottleneck_block(filters_out, None, 1, filters_out))
+                blocks.append(bottleneck_block(filters_out, None, strides, filters_out))
         self.blocks = nn.Sequential(*blocks)
 
         ### END CODE HERE
